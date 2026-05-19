@@ -1,0 +1,32 @@
+Objetivo
+Crie uma aplicação simples utilizando FastAPI para gerenciar um conjunto de tarefas. A aplicação deve permitir as seguintes operações:
+
+Adicionar uma nova tarefa com um nome e uma descrição.
+
+Listar todas as tarefas cadastradas.
+
+Marcar uma tarefa como concluída.
+
+Remover uma tarefa.
+
+Passo a Passo:
+Criação da Aplicação FastAPI
+Crie um arquivo Python chamado app.py e inicialize a aplicação FastAPI. Para isso, importe a classe FastAPI e crie uma instância da aplicação.
+
+Definindo uma Lista de Tarefas
+Crie uma lista de dicionários para armazenar as tarefas. Cada tarefa será representada como um dicionário com os campos "nome", "descrição" e "concluída" (inicialmente como False).
+
+Rota para Adicionar uma Tarefa
+Crie uma rota do tipo POST que permita adicionar uma nova tarefa. A rota deverá receber um corpo JSON com os campos "nome" e "descrição" e adicionar a tarefa à lista.
+
+Rota para Listar as Tarefas
+Crie uma rota do tipo GET que exiba todas as tarefas. A resposta deve incluir o nome, a descrição e se a tarefa foi concluída ou não.
+
+Rota para Marcar uma Tarefa como Concluída
+Crie uma rota do tipo PUT que permita marcar uma tarefa como concluída. Para isso, a rota deve receber o nome da tarefa e alterar o valor do campo "concluída" para True se a tarefa existir.
+
+Rota para Remover uma Tarefa
+Crie uma rota do tipo DELETE que permita remover uma tarefa da lista. A rota deve receber o nome da tarefa e removê-la da lista se existir.
+
+Testando a Aplicação
+Após implementar as rotas, utilize o Insomnia ou Postman para testar as funcionalidades. Envie requisições POST para adicionar tarefas, GET para listar, PUT para marcar tarefas como concluídas e DELETE para remover tarefas.

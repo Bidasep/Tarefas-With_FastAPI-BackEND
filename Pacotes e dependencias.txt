@@ -1,0 +1,33 @@
+1 - PIP DOCUMENTATION
+
+PIP.PYPA.IO
+C:> py -m ensurepip --upgrade
+
+2- python poetry
+
+documentation > introduction - with the oficial instaler
+
+curl -sSL https://install.python-poetry.org | python3 -
+
+3 -  poetry plugin
+GitHub.com/python-poetry/poetry-plugin-shell
+
+and 
+pip install poetry-plugin-shell
+
+INICIANDO --------***---
+
+1 - poetry init  -> NOME DO PROJETO (sem espaços)
+
+poetry add "fastapi[standard]"
+
+2 - poetry shell
+
+
+3 - para iniciar o servidor virtual : poetry add fastapi[standard]s
+
+4 - em seguida fastapi dev "main.py" main sem aspas, é o nome do arquivo principal.
+
+INSTALANDO O SQL LITE
+
+poetry add sqlalchemy aiosqlite  //  SÃO DOIS ARQUIVOS ALCHEMY E SQLITE
