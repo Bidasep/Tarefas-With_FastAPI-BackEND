@@ -18,16 +18,19 @@ pip install poetry-plugin-shell
 INICIANDO --------***---
 
 1 - poetry init  -> NOME DO PROJETO (sem espaços)
-
 poetry add "fastapi[standard]"
-
 2 - poetry shell
-
-
 3 - para iniciar o servidor virtual : poetry add fastapi[standard]s
-
 4 - em seguida fastapi dev "main.py" main sem aspas, é o nome do arquivo principal.
 
 INSTALANDO O SQL LITE
 
 poetry add sqlalchemy aiosqlite  //  SÃO DOIS ARQUIVOS ALCHEMY E SQLITE
+
+
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M master
+git remote add origin https://github.com/Bidasep/Tarefas-With_FastAPI-BackEND.git
+git push -u origin master
