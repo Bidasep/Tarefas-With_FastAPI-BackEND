@@ -1,35 +1,32 @@
 #Objetivo
-#Crie uma aplicação simples utilizando FastAPI para gerenciar um conjunto de tarefas. A aplicação deve permitir as seguintes operações:
+#O objetivo do desafio é implementar a persistência dos dados no SQLite e conectar os endpoints 
+# existentes para que eles interajam com o banco de dados, ao invés de armazenar as informações na 
+# memória. Isso envolve:
 
-#Adicionar uma nova tarefa com um nome e uma descrição.
+#Substituir o dicionário que atualmente guarda as tarefas por um banco de dados SQLite.
 
-#Listar todas as tarefas cadastradas.
+#Criar a estrutura do banco de dados e implementar as operações necessárias 
+# (inserir, listar, atualizar e remover tarefas).
 
-#Marcar uma tarefa como concluída.
+#Adaptar os endpoints existentes para realizar operações de CRUD no banco de dados SQLite.
 
-#Remover uma tarefa.
+#Com isso, sua aplicação será capaz de armazenar e recuperar tarefas de forma persistente, permitindo
+# que os dados não se percam quando o servidor for reiniciado. O banco de dados será o responsável 
+# por armazenar as informações de maneira mais eficiente e segura.
 
-#Passo a Passo:
-#Criação da Aplicação FastAPI
-#Crie um arquivo Python chamado app.py e inicialize a aplicação FastAPI. Para isso, importe a classe FastAPI e crie uma instância da aplicação.
+#Passo a passo para implementar:
+#Substituir o dicionário pelo SQLite: Crie um banco de dados SQLite e configure o modelo para as tarefas.
 
-#Definindo uma Lista de Tarefas
-#Crie uma lista de dicionários para armazenar as tarefas. Cada tarefa será representada como um dicionário com os campos "nome", "descrição" e "concluída" (inicialmente como False).
+#Endpoints GET, POST, PUT e DELETE: Alterar os endpoints para fazer requisições no
+# banco de dados, realizando as operações de CRUD de forma persistente.
 
-#Rota para Adicionar uma Tarefa
-#Crie uma rota do tipo POST que permita adicionar uma nova tarefa. A rota deverá receber um corpo JSON com os campos "nome" e "descrição" e adicionar a tarefa à lista.
+#Testar os endpoints: Realizar testes para garantir que a integração com o banco de dados está 
+# funcionando corretamente.
 
-#rota para Listar as Tarefas
-#Crie uma rota do tipo GET que exiba todas as tarefas. A resposta deve incluir o nome, a descrição e se a tarefa foi concluída ou não.
+#Esse desafio ajudará a consolidar a integração entre o FastAPI e um banco de dados real, 
+# proporcionando mais aprendizado sobre como trabalhar com bancos de dados em um contexto de 
+# aplicações web.
 
-#Rota para Marcar uma Tarefa como Concluída
-#Crie uma rota do tipo PUT que permita marcar uma tarefa como concluída. Para isso, a rota deve receber o nome da tarefa e alterar o valor do campo "concluída" para True se a tarefa existir.
-
-#Rota para Remover uma Tarefa
-#Crie uma rota do tipo DELETE que permita remover uma tarefa da lista. A rota deve receber o nome da tarefa e removê-la da lista se existir.
-
-#Testando a Aplicação
-#Após implementar as rotas, utilize o Insomnia ou Postman para testar as funcionalidades. Envie requisições POST para adicionar tarefas, GET para listar, PUT para marcar tarefas como concluídas e DELETE para remover tarefas.#
 
 # 1 INSTALAR PACOTES E DEPENDENCIAS:
 #1 - poetry init -> NOME DO PROJETO (sem espaços)
@@ -69,12 +66,12 @@ class TarefaDB(Base):
     id =Column(Integer, primary_key = True, index = True)
     nome_tarefa= Column(String, index = True)
     descricao_tarefa = Column(String, index = True)
-    concluida = False
+    concluida:bool = False
     
 class Tarefa(BaseModel):
     nome_tarefa: str
     descricao_tarefa: str
-    concluida: bool   
+    concluida: bool = False  
     
 Base.metadata.create_all(bind=engine)
 
@@ -99,7 +96,7 @@ app = FastAPI()
 @app.get("/tarefas")
 def get_tarefas(page: int=1, limit: int = 10, db: Session = Depends(sessao_db)):
     
-    #Função ja para trazer organizado os itens do DB , substitui a antigas função livros_paginados
+    #Função ja para trazer organizado os itens do DB , substitui a antigas função 
     Tarefas = db.query(TarefaDB).offset((page - 1)* limit).limit(limit).all()
     # Se nao tiver nada em tarefas:
     if not Tarefas:
@@ -113,7 +110,7 @@ def get_tarefas(page: int=1, limit: int = 10, db: Session = Depends(sessao_db)):
         "limit": limit,
         "total": total_tarefas,
         #Faz um for in (para cada livro ou item do Livro ( que é os arquivos do nosso DB))
-        "tarefas": [{"id": tarefa.id, "nome_tarefa": tarefa.nome_tarefa, "descricao_tarefa":tarefa.descricao_tarefa } for tarefa in Tarefas]
+        "tarefas": [{"id": tarefa.id, "nome_tarefa": tarefa.nome_tarefa, "descricao_tarefa":tarefa.descricao_tarefa, "Tarefa_concluida":tarefa.concluida } for tarefa in Tarefas]
         
         }
     
@@ -131,7 +128,7 @@ def post_tarefa(tarefa:Tarefa, db: Session = Depends(sessao_db)):
     
     #se nao existir preciso add no banco de dados.
     
-    nova_tarefa = TarefaDB(nome_tarefa = tarefa.nome_tarefa, descricao_tarefa = tarefa.descricao_tarefa, concluida = False )
+    nova_tarefa = TarefaDB(nome_tarefa = tarefa.nome_tarefa, descricao_tarefa = tarefa.descricao_tarefa, concluida = tarefa.concluida )
     
     # atualizar no banco de dados os novos dados
     db.add(nova_tarefa)
@@ -140,7 +137,32 @@ def post_tarefa(tarefa:Tarefa, db: Session = Depends(sessao_db)):
     
     return { "Mensagem" : "Tarefa adicionada com sucesso!"}
 
+@app.put("/atualiza/{id_tarefa}")
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
+#recebe os parametros para atualizar as tarefas : id da tarefa ja definido direto quando cria no Banco
+# tarefa, us aa referencia da Tarefa classe (base model), db session para "Abrir o Banco de dados" chama função sessão DB
+def put_tarefas(id_tarefa:int, tarefa:Tarefa , db:Session = Depends(sessao_db)):
+    
+    #faz uma query no banco de dados db.query, e já filtra pelo ID , 
+    #verifica se tem a tarefa no DB TarefaDB.id == id_tarefa
+    db_tarefa = db.query(TarefaDB).filter(TarefaDB.id == id_tarefa).first()
+
+    # se nao tiver no DB lança uma a exception.
+    if not db_tarefa:
+        return HTTPException( status_code=400 , detail= "Está tarefa nao foi encontrada.")
+    
+    # atualiza os dados no Banco de dados
+    db_tarefa.nome_tarefa == tarefa.nome_tarefa     
+    db_tarefa.descricao_tarefa == tarefa.descricao_tarefa
+    db_tarefa.concluida == tarefa.concluida
+    
+    # atualizar no banco de dados os novos dados
+    db.commit()
+    db.refresh(db_tarefa)
+    
+    return {"message" : f"A tarefa {db_tarefa.nome_tarefa} foi atualizada comn sucesso"}
+
+    
+
+
+
