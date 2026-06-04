@@ -45,7 +45,7 @@ from pydantic import BaseModel
 from typing import Optional
 import secrets
 
-from sqlalchemy import create_engine,Column, Integer,String
+from sqlalchemy import create_engine,Column, Integer,String,Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -56,8 +56,6 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread" : False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-minhas_tarefas = {}
-
 #classes de referencia e classe do Banco de dados como será o nosso arquivo
 #Definindo uma Lista de Tarefas
 
@@ -66,12 +64,12 @@ class TarefaDB(Base):
     id =Column(Integer, primary_key = True, index = True)
     nome_tarefa= Column(String, index = True)
     descricao_tarefa = Column(String, index = True)
-    concluida:bool = False
+    concluida = Column(Boolean, default=False)
     
 class Tarefa(BaseModel):
     nome_tarefa: str
     descricao_tarefa: str
-    concluida: bool = False  
+    concluida: bool = False   
     
 Base.metadata.create_all(bind=engine)
 
@@ -87,14 +85,36 @@ def sessao_db():
 #4 - iniciar a variavel da fastAPI
 app = FastAPI()
 
+#5 
+#usuário e senha para login
+
+MEU_USUARIO = "admin"
+MINHA_SENHA = "admin"
+
+security = HTTPBasic()
 
 
+#função para validação d0 usuário e senha
+def autenticar_meu_usuario( credentials: HTTPBasicCredentials = Depends(security) ):
+    is_username_correct = secrets.compare_digest(credentials.username, MEU_USUARIO)
+    is_password_correct = secrets.compare_digest(credentials.password, MINHA_SENHA)
+    
+    if not (is_username_correct and is_password_correct):
+        raise HTTPException(
+            status_code = 401,
+            detail= "Usuário ou senha incorretos",
+            headers= {"WWW-Authenticate":"Basic"}
+        )
+            
+    
+    
+    
 
 # Rotas e endpoints
 
 #Rota para Adicionar uma Tarefa
 @app.get("/tarefas")
-def get_tarefas(page: int=1, limit: int = 10, db: Session = Depends(sessao_db)):
+def get_tarefas(page: int=1, limit: int = 10, db: Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     
     #Função ja para trazer organizado os itens do DB , substitui a antigas função 
     Tarefas = db.query(TarefaDB).offset((page - 1)* limit).limit(limit).all()
@@ -117,7 +137,7 @@ def get_tarefas(page: int=1, limit: int = 10, db: Session = Depends(sessao_db)):
 #Rota para Adicionar uma Tarefa
 
 @app.post("/adiciona")
-def post_tarefa(tarefa:Tarefa, db: Session = Depends(sessao_db)):
+def post_tarefa(tarefa:Tarefa, db: Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     #usar a referencia de classe Tarefa(basemodel) diferente da classe TarefaDB
     #faz uma query no DB para verificar se a tarefa já tem
     db_tarefa = db.query(TarefaDB).filter(TarefaDB.nome_tarefa == tarefa.nome_tarefa).first()
@@ -141,7 +161,7 @@ def post_tarefa(tarefa:Tarefa, db: Session = Depends(sessao_db)):
 
 #recebe os parametros para atualizar as tarefas : id da tarefa ja definido direto quando cria no Banco
 # tarefa, us aa referencia da Tarefa classe (base model), db session para "Abrir o Banco de dados" chama função sessão DB
-def put_tarefas(id_tarefa:int, tarefa:Tarefa , db:Session = Depends(sessao_db)):
+def put_tarefas(id_tarefa:int, tarefa:Tarefa , db:Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
     
     #faz uma query no banco de dados db.query, e já filtra pelo ID , 
     #verifica se tem a tarefa no DB TarefaDB.id == id_tarefa
@@ -149,18 +169,60 @@ def put_tarefas(id_tarefa:int, tarefa:Tarefa , db:Session = Depends(sessao_db)):
 
     # se nao tiver no DB lança uma a exception.
     if not db_tarefa:
-        return HTTPException( status_code=400 , detail= "Está tarefa nao foi encontrada.")
+        raise HTTPException( status_code=400 , detail= "Está tarefa nao foi encontrada.")
     
     # atualiza os dados no Banco de dados
-    db_tarefa.nome_tarefa == tarefa.nome_tarefa     
-    db_tarefa.descricao_tarefa == tarefa.descricao_tarefa
-    db_tarefa.concluida == tarefa.concluida
+    db_tarefa.nome_tarefa = tarefa.nome_tarefa     
+    db_tarefa.descricao_tarefa = tarefa.descricao_tarefa
+    db_tarefa.concluida = tarefa.concluida
     
     # atualizar no banco de dados os novos dados
     db.commit()
     db.refresh(db_tarefa)
     
     return {"message" : f"A tarefa {db_tarefa.nome_tarefa} foi atualizada comn sucesso"}
+
+@app.put ("/atualiza/{id_tarefa}/concluir")
+
+def put_concluir(id_tarefa:int, db:Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+    
+    #faz uma query no banco de dados db.query, e já filtra pelo ID , 
+    #verifica se tem a tarefa no DB TarefaDB.id == id_tarefa
+    db_tarefa = db.query(TarefaDB).filter(TarefaDB.id == id_tarefa).first()
+    
+    if not db_tarefa:
+        raise HTTPException( status_code= 400, detail= "Está tarefa nao foi encontrada.")
+    
+    db_tarefa.concluida = True
+    
+    db.commit()
+    db.refresh(db_tarefa)    
+    
+    return {"message":f"A tarefa {db_tarefa.nome_tarefa} foi atualizada com sucesso!!"}
+
+
+
+
+
+
+@app.delete("/delete/{id_tarefa}")
+
+def del_tarefa(id_tarefa, db:Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
+    
+    #faz uma query no banco de dados db.query, e já filtra pelo ID , 
+    #verifica se tem a tarefa no DB TarefaDB.id == id_tarefa
+    db_tarefa = db.query(TarefaDB).filter(TarefaDB.id == id_tarefa).first()
+    
+    if not db_tarefa:
+       raise HTTPException(status_code=400, detail= "Tarefa não encontrada.")
+    
+    db.delete(db_tarefa)
+    db.commit()
+    
+    
+    return {"message": f"A tarefa {db_tarefa.nome_tarefa} foi deletada com sucesso!"}
+    
+    
 
     
 
