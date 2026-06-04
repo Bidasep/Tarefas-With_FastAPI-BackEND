@@ -157,6 +157,8 @@ def post_tarefa(tarefa:Tarefa, db: Session = Depends(sessao_db), credentials: HT
     
     return { "Mensagem" : "Tarefa adicionada com sucesso!"}
 
+#rota para atualizar uma tarefa completa via ID
+
 @app.put("/atualiza/{id_tarefa}")
 
 #recebe os parametros para atualizar as tarefas : id da tarefa ja definido direto quando cria no Banco
@@ -182,6 +184,8 @@ def put_tarefas(id_tarefa:int, tarefa:Tarefa , db:Session = Depends(sessao_db), 
     
     return {"message" : f"A tarefa {db_tarefa.nome_tarefa} foi atualizada comn sucesso"}
 
+#Rota para atualizar a tarefa , comente concluir
+
 @app.put ("/atualiza/{id_tarefa}/concluir")
 
 def put_concluir(id_tarefa:int, db:Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
@@ -204,7 +208,7 @@ def put_concluir(id_tarefa:int, db:Session = Depends(sessao_db), credentials: HT
 
 
 
-
+# rota para deletar uma tarefa via ID
 @app.delete("/delete/{id_tarefa}")
 
 def del_tarefa(id_tarefa, db:Session = Depends(sessao_db), credentials: HTTPBasicCredentials = Depends(autenticar_meu_usuario)):
